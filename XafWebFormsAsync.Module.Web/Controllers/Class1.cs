@@ -17,14 +17,21 @@ public class MyAsynController : ViewController
 
     private void YourAsyncAction_Execute(object sender, SimpleActionExecuteEventArgs e)
     {
+        // Create a progress reporter
+        var progress = new Progress<int>(percent => 
+        {
+            // This action will be executed on the UI thread when progress is reported
+            Application.ShowViewStrategy.ShowMessage($"Progress: {percent}%");
+        });
+
         // Create and register the async task
         WebWindow.CurrentRequestPage.RegisterAsyncTask(
             new PageAsyncTask(async cancellationToken =>
             {
                 try
                 {
-                    // Your async operation
-                    var result = await YourAsyncMethod();
+                    // Your async operation with progress reporting
+                    var result = await YourAsyncMethodWithProgress(progress, cancellationToken);
 
                     // Update UI or process results
                     // Note: This runs after the async operation completes
@@ -38,10 +45,21 @@ public class MyAsynController : ViewController
         );
     }
 
-    private async Task<string> YourAsyncMethod()
+    private async Task<string> YourAsyncMethodWithProgress(IProgress<int> progress, System.Threading.CancellationToken cancellationToken)
     {
-        // Example async operation
-        await Task.Delay(3000); // Simulating work
+        // Example async operation with progress reporting
+        for (int i = 0; i <= 10; i++)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+                
+            // Simulate work
+            await Task.Delay(300, cancellationToken);
+            
+            // Report progress (0-100%)
+            progress?.Report(i * 10);
+        }
+        
         return "Success";
     }
 }
